@@ -1,7 +1,7 @@
 """imports"""
 import logging
 import sqlite3
-
+import time
 
 class SqlManager:
     def __init__(self, database):
@@ -9,6 +9,9 @@ class SqlManager:
         self.connection = sqlite3.connect(self.database)
         self.cursor = self.connection.cursor()
         logging.info(f"Connected to database '{self.database}'")
+        self.create_uuid_table()
+        self.create_user_table()
+        self.create_gamemodes_table()
     
     def create_uuid_table(self):
         self.cursor.execute("CREATE TABLE IF NOT EXISTS uuid (key NUM, username TEXT, uuid TEXT)")
@@ -20,8 +23,9 @@ class SqlManager:
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS users (
                             Key NUM, 
                             Time INTEGER,
-
                             Could_Not_Find_Player INTEGER,
+
+                            star INTEGER,
 
                             Bedwars_Final_Kills INTEGER,
                             Bedwars_Final_Deaths INTEGER,
@@ -32,7 +36,7 @@ class SqlManager:
                             Bedwars_Beds_Broken INTEGER,
                             Bedwars_Beds_Lost INTEGER,
                             Bedwars_Games_Played INTEGER,
-                            Bedwars_Winstreak INTEGER,
+                            Bedwars_Winstreak INTEGER
                             )""")
         self.connection.commit()
 
@@ -67,12 +71,26 @@ class SqlManager:
                             )""")
         self.connection.commit()
 
+    
 
-
-    def put_uuid(self, key, username, uuid):
+    def put_uuid(self, username, uuid):
+        """puts uuid into database, returns key for further fetching"""
+        key = self.cursor.execute("SELECT MAX(key) FROM uuid").fetchone()[0]
+        if key == None:
+            key = 0
+        else:
+            key += 1
+        logging.debug(f"putting uuid into database: {username} {uuid} {key}")
         self.cursor.execute("INSERT INTO uuid VALUES (?, ?, ?)", (key, username, uuid))
         self.connection.commit()
+        return key
 
+
+    def in_uuid(self, key):
+        """checks if name is in database"""
+        self.cursor.execute("SELECT * FROM uuid WHERE username=?", (key,))
+        return self.cursor.fetchone() is not None
+    
     # get uuid
     def get_uuid_from_key(self, key):
         self.cursor.execute("SELECT uuid FROM uuid WHERE key=?", (key,))
@@ -101,18 +119,18 @@ class SqlManager:
         return self.cursor.fetchone()
     
 
-    #
+    
     def put_user(
             self, 
-            key, time, could_not_find_player,
+            key, could_not_find_player, star,
             bedwars_final_kills, bedwars_final_deaths, bedwars_kills, bedwars_deaths, bedwars_wins, 
             bedwars_losses, bedwars_beds_broken, bedwars_beds_lost, bedwars_games_played, bedwars_winstreak
             ):
-        
+        t = int(time.time())
         self.cursor.execute(
-            "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
-                    key, time, could_not_find_player,
+                    key, t, could_not_find_player, star,
                     bedwars_final_kills, bedwars_final_deaths, bedwars_kills, bedwars_deaths, bedwars_wins, 
                     bedwars_losses, bedwars_beds_broken, bedwars_beds_lost, bedwars_games_played, bedwars_winstreak
                 )
@@ -120,16 +138,17 @@ class SqlManager:
         self.connection.commit()
 
     def put_user_gamemode(
-            self, key, time, 
+            self, key, 
             Bedwars_Ones_Wins, Bedwars_Ones_Losses, Bedwars_Ones_FKDR, Bedwars_Ones_WLR, Bedwars_Ones_BBLR, 
             Bedwars_Twos_Wins, Bedwars_Twos_Losses, Bedwars_Twos_FKDR, Bedwars_Twos_WLR, Bedwars_Twos_BBLR, 
             Bedwars_Threes_Wins, Bedwars_Threes_Losses, Bedwars_Threes_FKDR, Bedwars_Threes_WLR, Bedwars_Threes_BBLR, 
             Bedwars_Fours_Wins, Bedwars_Fours_Losses, Bedwars_Fours_FKDR, Bedwars_Fours_WLR, Bedwars_Fours_BBLR):
         
+        t = int(time.time())
         self.cursor.execute(
             "INSERT INTO users_gamestats VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                key, time,
+                key, t,
                 Bedwars_Ones_Wins, Bedwars_Ones_Losses, Bedwars_Ones_FKDR, Bedwars_Ones_WLR, Bedwars_Ones_BBLR, 
                 Bedwars_Twos_Wins, Bedwars_Twos_Losses, Bedwars_Twos_FKDR, Bedwars_Twos_WLR, Bedwars_Twos_BBLR, 
                 Bedwars_Threes_Wins, Bedwars_Threes_Losses, Bedwars_Threes_FKDR, Bedwars_Threes_WLR, Bedwars_Threes_BBLR, 
@@ -137,7 +156,12 @@ class SqlManager:
             )
         )
         self.connection.commit()
-        
+
+    
+    def put_dead_user(self, key):
+        t = int(time.time())
+        self.cursor.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (key, t, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+        self.connection.commit()
 
     def get_user(self, key):
         self.cursor.execute("SELECT * FROM users WHERE key=?", (key,))

@@ -63,12 +63,26 @@ class Rate_Limit:
             
     def is_ready(self):
         """Returns True if the rate limit is not exceeded, does not add a call"""
+        if self.period == 0:
+            return True
         self.clear_elapsed_calls()
         return len(self.calls) < self.calls_per_period
 
     def time_between_call(self):
         """Returns the time between calls"""
+        if self.period == 0:
+            return 0
         return self.period/self.calls_per_period
+    
+    def time_until_ready(self):
+        """Returns the time until the rate limit is ready"""
+        if self.is_ready():
+            return 0
+        else:
+            return self.period - (time.time() - self.calls[0])
+        
+    def add_call(self):
+        return self.__call__()
 
 
         

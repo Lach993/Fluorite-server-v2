@@ -16,11 +16,13 @@ import os
 
 """SETTINGS"""
 class Fluorite_Bot:
-    def __init__(self, token):
+    def __init__(self, token, loop):
         self.bot = Bot(command_prefix="f.", intents=Intents.all())
         self.bot.remove_command("help")
         self.bot.loop.create_task(self.update())
         self.bot.run(token)
+
+        
 
     
 
