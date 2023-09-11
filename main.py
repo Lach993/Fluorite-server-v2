@@ -27,7 +27,7 @@ if CREATE_DISCORD_BOT:
     Discord_Token = os.getenv("Discord-Token") # Alternativly: json.load(open("data/Tokens.json"))["Discord-Token"]
 
 """Rate Limits"""
-Hypixel_RateLimit = Rate_Limit(120, to_seconds(minutes=1), name="Hypixel API")
+Hypixel_RateLimit = Rate_Limit(300, to_seconds(minutes=5), name="Hypixel API")
 Mojang_RateLimit = Rate_Limit(600, to_seconds(minutes=10), name="Mojang API")
 
 
